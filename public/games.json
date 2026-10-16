@@ -1,0 +1,223 @@
+[
+  {
+    "id": "cyber-snake",
+    "title": "Cyber Snake",
+    "category": "Arcade",
+    "description": "Guide your glowing serpent across the grid, consume energy nodes, and avoid crashing into walls or yourself.",
+    "iframeUrl": "/games/snake.html",
+    "icon": "Gamepad2",
+    "accent": "emerald",
+    "badge": "Popular",
+    "rating": 4.9,
+    "plays": "52.4K",
+    "controls": [
+      { "key": "Arrow Keys / WASD", "action": "Move direction" },
+      { "key": "Space / P", "action": "Pause" },
+      { "key": "R", "action": "Restart" }
+    ],
+    "instructions": [
+      "Use arrow keys or WASD to navigate.",
+      "Eat green energy orbs for 10 points and rare gold nodes for 50 points.",
+      "Speed increases as your length grows.",
+      "Don't collide with the borders or your own tail."
+    ]
+  },
+  {
+    "id": "space-invaders",
+    "title": "Galaxy Defender",
+    "category": "Action",
+    "description": "Defend humanity against descending waves of alien invaders in this arcade space shooter.",
+    "iframeUrl": "/games/space-invaders.html",
+    "icon": "Rocket",
+    "accent": "violet",
+    "badge": "Hot",
+    "rating": 4.8,
+    "plays": "48.1K",
+    "controls": [
+      { "key": "A / D or ← / →", "action": "Move ship" },
+      { "key": "Spacebar", "action": "Fire blaster" },
+      { "key": "P", "action": "Pause" }
+    ],
+    "instructions": [
+      "Move left and right to evade incoming enemy laser ordnance.",
+      "Press Spacebar to fire your ship's laser cannons.",
+      "Eliminate all alien invaders to advance to the next wave.",
+      "You have 3 shields before the ship is destroyed."
+    ]
+  },
+  {
+    "id": "flappy-astro",
+    "title": "Astro Flap",
+    "category": "Arcade",
+    "description": "Fire thrusters to maneuver your cosmonaut through hazardous orbital plasma gates.",
+    "iframeUrl": "/games/flappy-bird.html",
+    "icon": "Compass",
+    "accent": "amber",
+    "badge": "Addictive",
+    "rating": 4.7,
+    "plays": "61.0K",
+    "controls": [
+      { "key": "Space / Click", "action": "Thrust upward" },
+      { "key": "R", "action": "Restart" }
+    ],
+    "instructions": [
+      "Click or press Spacebar to activate upward micro-thrusters.",
+      "Navigate safely through the gaps between plasma pillars.",
+      "Earn Bronze medal at 10, Silver at 25, and Gold at 50 points."
+    ]
+  },
+  {
+    "id": "neon-pong",
+    "title": "Neon Pong 2P",
+    "category": "2-Player",
+    "description": "High-speed cybernetic table tennis. Play solo against the AI or challenge a friend locally.",
+    "iframeUrl": "/games/pong.html",
+    "icon": "Swords",
+    "accent": "cyan",
+    "badge": "Multiplayer",
+    "rating": 4.8,
+    "plays": "34.2K",
+    "controls": [
+      { "key": "W / S", "action": "Player 1 Up / Down" },
+      { "key": "↑ / ↓", "action": "Player 2 Up / Down" },
+      { "key": "Space", "action": "Serve / Pause" }
+    ],
+    "instructions": [
+      "Choose Solo vs Computer or 2-Player local face-off.",
+      "Deflect the ball at an angle to add speed and curve.",
+      "First player to score 7 points wins the match."
+    ]
+  },
+  {
+    "id": "tetris-matrix",
+    "title": "Block Matrix",
+    "category": "Puzzle",
+    "description": "The classic falling polyomino puzzle. Position, rotate, and drop blocks to clear complete rows.",
+    "iframeUrl": "/games/tetris.html",
+    "icon": "Grid",
+    "accent": "blue",
+    "badge": "Classic",
+    "rating": 4.9,
+    "plays": "75.3K",
+    "controls": [
+      { "key": "← / →", "action": "Move piece" },
+      { "key": "↑ / X", "action": "Rotate piece" },
+      { "key": "↓", "action": "Soft drop" },
+      { "key": "Space", "action": "Hard drop" },
+      { "key": "C", "action": "Hold piece" }
+    ],
+    "instructions": [
+      "Fit falling geometric blocks together to fill complete horizontal lines.",
+      "Clearing 4 lines at once awards a massive Tetris bonus.",
+      "Use C to hold a piece for later when you need it most."
+    ]
+  },
+  {
+    "id": "breakout-blaster",
+    "title": "Breakout Blaster",
+    "category": "Arcade",
+    "description": "Demolish barriers of colored bricks with your paddle and ball, collecting powerups as they fall.",
+    "iframeUrl": "/games/breakout.html",
+    "icon": "Boxes",
+    "accent": "rose",
+    "badge": "Retro",
+    "rating": 4.7,
+    "plays": "39.5K",
+    "controls": [
+      { "key": "A / D or ← / →", "action": "Move paddle" },
+      { "key": "Space", "action": "Launch ball" }
+    ],
+    "instructions": [
+      "Keep the ball in play by deflecting it off your paddle.",
+      "Break all bricks to advance to higher stages.",
+      "Catch falling powerups: Wide Paddle (W), Multiball (M), and Extra Life (+)."
+    ]
+  },
+  {
+    "id": "game-2048",
+    "title": "2048 Neon",
+    "category": "Puzzle",
+    "description": "Slide numbered tiles across the board and merge pairs of matching numbers to reach 2048.",
+    "iframeUrl": "/games/2048.html",
+    "icon": "Binary",
+    "accent": "yellow",
+    "badge": "Popular",
+    "rating": 4.8,
+    "plays": "58.9K",
+    "controls": [
+      { "key": "Arrow Keys / WASD", "action": "Slide tiles" },
+      { "key": "U", "action": "Undo move" },
+      { "key": "R", "action": "Restart" }
+    ],
+    "instructions": [
+      "Slide all tiles on the board simultaneously in four directions.",
+      "Tiles with the same number merge into one when they collide.",
+      "Build up to the legendary 2048 tile to win!"
+    ]
+  },
+  {
+    "id": "dino-runner",
+    "title": "T-Rex Horizon",
+    "category": "Action",
+    "description": "Sprint endlessly through the desert canyon, leaping over cacti and ducking under pterodactyls.",
+    "iframeUrl": "/games/dino.html",
+    "icon": "Footprints",
+    "accent": "emerald",
+    "badge": "Iconic",
+    "rating": 4.9,
+    "plays": "68.7K",
+    "controls": [
+      { "key": "Space / ↑", "action": "Jump" },
+      { "key": "↓", "action": "Duck / Crouch" },
+      { "key": "R", "action": "Restart" }
+    ],
+    "instructions": [
+      "Jump over low and tall cacti.",
+      "Duck under flying pterodactyls.",
+      "Speed accelerates as your run distance increases."
+    ]
+  },
+  {
+    "id": "minesweeper",
+    "title": "Minesweeper Pro",
+    "category": "Puzzle",
+    "description": "Clear the explosive minefield using numbered clues and logical deduction.",
+    "iframeUrl": "/games/minesweeper.html",
+    "icon": "Flag",
+    "accent": "slate",
+    "badge": "Classic",
+    "rating": 4.8,
+    "plays": "31.4K",
+    "controls": [
+      { "key": "Left Click", "action": "Reveal cell" },
+      { "key": "Right Click", "action": "Plant flag" },
+      { "key": "F", "action": "Toggle flag mode" }
+    ],
+    "instructions": [
+      "Click tiles to reveal them without hitting a mine.",
+      "Numbers show how many adjacent mines are hidden nearby.",
+      "Right-click or toggle flag mode to mark suspected mines."
+    ]
+  },
+  {
+    "id": "connect-four",
+    "title": "Connect 4 Tactics",
+    "category": "2-Player",
+    "description": "Drop colored tokens into the grid. Connect 4 in a horizontal, vertical, or diagonal line to win.",
+    "iframeUrl": "/games/connect4.html",
+    "icon": "CircleDot",
+    "accent": "rose",
+    "badge": "Multiplayer",
+    "rating": 4.7,
+    "plays": "27.8K",
+    "controls": [
+      { "key": "1 - 7 / Click", "action": "Drop disc in column" },
+      { "key": "R", "action": "New match" }
+    ],
+    "instructions": [
+      "Click any column or press 1-7 to drop your disc.",
+      "Play against AI or face off with a friend locally.",
+      "Connect 4 consecutive discs of your color to claim victory."
+    ]
+  }
+]

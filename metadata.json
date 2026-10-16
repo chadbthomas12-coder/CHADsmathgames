@@ -1,0 +1,6 @@
+{
+  "name": "UnblockPlay - Arcade & Games Portal",
+  "description": "A fast, clean unblocked games portal featuring classic arcade, puzzle, action, and retro HTML5 canvas games with instant play and stealth mode.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

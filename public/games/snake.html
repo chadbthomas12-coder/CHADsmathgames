@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cyber Snake</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #090d16;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      padding: 10px;
+    }
+    #hud {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px 8px 0 0;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+    .score-badge { color: #10b981; font-weight: bold; }
+    .best-badge { color: #f59e0b; font-weight: bold; }
+    #canvas-container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 5/4;
+      background: #060911;
+      border: 1px solid #1e293b;
+      border-top: none;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(6, 9, 17, 0.85);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+    #overlay.active { display: flex; }
+    h2 { font-size: 24px; color: #ef4444; margin-bottom: 8px; }
+    p { font-size: 14px; color: #94a3b8; margin-bottom: 16px; }
+    .btn {
+      background: #10b981;
+      color: #060911;
+      font-weight: bold;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #059669; }
+    #touch-bar {
+      display: none;
+      width: 100%;
+      max-width: 500px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 10px;
+      justify-content: center;
+    }
+    .d-pad { display: grid; grid-template-columns: repeat(3, 46px); gap: 6px; }
+    .d-btn {
+      height: 42px;
+      background: #1e293b;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    @media (max-width: 600px) { #touch-bar { display: flex; } }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div>Score: <span id="score" class="score-badge">0</span></div>
+    <div>Best: <span id="best" class="best-badge">0</span></div>
+    <div id="status">Speed: 1x</div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="game" width="500" height="400"></canvas>
+    <div id="overlay">
+      <h2 id="modal-title">Game Over</h2>
+      <p id="modal-desc">Final Score: 0</p>
+      <button class="btn" onclick="resetGame()">Play Again (R)</button>
+    </div>
+  </div>
+
+  <div id="touch-bar">
+    <div class="d-pad">
+      <div></div>
+      <button class="d-btn" onclick="handleTouch(0, -1)">▲</button>
+      <div></div>
+      <button class="d-btn" onclick="handleTouch(-1, 0)">◀</button>
+      <button class="d-btn" onclick="handleTouch(0, 1)">▼</button>
+      <button class="d-btn" onclick="handleTouch(1, 0)">▶</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const statusEl = document.getElementById('status');
+    const overlay = document.getElementById('overlay');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDesc = document.getElementById('modal-desc');
+
+    const GRID = 20;
+    const COLS = 25;
+    const ROWS = 20;
+
+    let snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
+    let dir = {x: 1, y: 0};
+    let nextDir = {x: 1, y: 0};
+    let food = {x: 18, y: 10};
+    let bonus = null;
+    let score = 0;
+    let best = parseInt(localStorage.getItem('snake_hi') || '0', 10);
+    bestEl.textContent = best;
+    let speed = 100;
+    let lastTick = 0;
+    let isGameOver = false;
+    let isPaused = false;
+    let particles = [];
+
+    // Synthesized Audio
+    let audioCtx = null;
+    function beep(freq, duration, type='square') {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e){}
+    }
+
+    function spawnFood() {
+      let x, y, col;
+      do {
+        x = Math.floor(Math.random() * COLS);
+        y = Math.floor(Math.random() * ROWS);
+        col = snake.some(s => s.x === x && s.y === y);
+      } while(col);
+      food = {x, y};
+
+      if (Math.random() < 0.25 && !bonus) {
+        bonus = {x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS), timer: 65};
+      }
+    }
+
+    function resetGame() {
+      snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
+      dir = {x: 1, y: 0};
+      nextDir = {x: 1, y: 0};
+      score = 0;
+      speed = 100;
+      isGameOver = false;
+      isPaused = false;
+      bonus = null;
+      particles = [];
+      scoreEl.textContent = '0';
+      statusEl.textContent = 'Speed: 1x';
+      overlay.classList.remove('active');
+      spawnFood();
+    }
+
+    function handleTouch(x, y) {
+      if (x !== 0 && dir.x === 0) nextDir = {x, y: 0};
+      if (y !== 0 && dir.y === 0) nextDir = {x: 0, y};
+    }
+
+    window.addEventListener('keydown', e => {
+      if (['ArrowUp', 'KeyW'].includes(e.code) && dir.y === 0) { nextDir = {x: 0, y: -1}; e.preventDefault(); }
+      else if (['ArrowDown', 'KeyS'].includes(e.code) && dir.y === 0) { nextDir = {x: 0, y: 1}; e.preventDefault(); }
+      else if (['ArrowLeft', 'KeyA'].includes(e.code) && dir.x === 0) { nextDir = {x: -1, y: 0}; e.preventDefault(); }
+      else if (['ArrowRight', 'KeyD'].includes(e.code) && dir.x === 0) { nextDir = {x: 1, y: 0}; e.preventDefault(); }
+      else if (e.code === 'KeyP' || e.code === 'Space') {
+        if (!isGameOver) isPaused = !isPaused;
+        e.preventDefault();
+      } else if (e.code === 'KeyR' && isGameOver) {
+        resetGame();
+        e.preventDefault();
+      }
+    });
+
+    function loop(time) {
+      if (!isGameOver && !isPaused) {
+        if (time - lastTick > speed) {
+          lastTick = time;
+          dir = nextDir;
+          const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+
+          if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS || snake.some(s => s.x === head.x && s.y === head.y)) {
+            isGameOver = true;
+            beep(150, 0.4, 'sawtooth');
+            modalTitle.textContent = 'Game Over';
+            modalDesc.textContent = 'You reached ' + score + ' points';
+            overlay.classList.add('active');
+          } else {
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+              score += 10;
+              scoreEl.textContent = score;
+              beep(580, 0.1, 'sine');
+              speed = Math.max(50, 100 - Math.floor(score / 50) * 8);
+              statusEl.textContent = 'Speed: ' + (1 + Math.floor(score / 50)) + 'x';
+              if (score > best) {
+                best = score;
+                bestEl.textContent = best;
+                localStorage.setItem('snake_hi', String(best));
+              }
+              spawnFood();
+            } else if (bonus && head.x === bonus.x && head.y === bonus.y) {
+              score += 50;
+              scoreEl.textContent = score;
+              beep(880, 0.2, 'triangle');
+              bonus = null;
+              if (score > best) {
+                best = score;
+                bestEl.textContent = best;
+                localStorage.setItem('snake_hi', String(best));
+              }
+            } else {
+              snake.pop();
+            }
+
+            if (bonus) {
+              bonus.timer--;
+              if (bonus.timer <= 0) bonus = null;
+            }
+          }
+        }
+      }
+
+      // Draw
+      ctx.fillStyle = '#060911';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      for (let x = 0; x <= canvas.width; x += GRID) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y <= canvas.height; y += GRID) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+
+      // Food
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(food.x * GRID + GRID/2, food.y * GRID + GRID/2, GRID/2 - 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bonus
+      if (bonus) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(bonus.x * GRID + GRID/2, bonus.y * GRID + GRID/2, GRID/2 - 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Snake
+      snake.forEach((part, i) => {
+        ctx.fillStyle = i === 0 ? '#34d399' : 'rgba(16, 185, 129, ' + Math.max(0.35, 1 - i / snake.length) + ')';
+        ctx.fillRect(part.x * GRID + 1, part.y * GRID + 1, GRID - 2, GRID - 2);
+      });
+
+      requestAnimationFrame(loop);
+    }
+
+    spawnFood();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

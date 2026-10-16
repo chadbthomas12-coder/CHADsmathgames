@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Connect 4 Tactics</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #090c15;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      padding: 10px;
+    }
+    #hud {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 8px 8px 0 0;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+    .status-text { font-weight: bold; }
+    #board-wrapper {
+      position: relative;
+      background: #1e3a8a;
+      border: 2px solid #1d4ed8;
+      border-top: none;
+      padding: 14px;
+      border-radius: 0 0 12px 12px;
+      width: 100%;
+      max-width: 420px;
+    }
+    #slots-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+    .col-drop {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .slot {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #090c15;
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.8);
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .slot.p1 { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+    .slot.p2 { background: #eab308; box-shadow: 0 0 8px #eab308; }
+    .slot.win { transform: scale(1.08); border: 2px solid #fff; }
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(9, 12, 21, 0.85);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0 0 12px 12px;
+    }
+    #overlay.active { display: flex; }
+    .btn {
+      background: #ef4444;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div id="turn-indicator" class="status-text" style="color:#ef4444;">Red's Turn</div>
+    <button onclick="toggleMode()" id="mode-btn" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:4px 8px; border-radius:4px; font-size:12px; cursor:pointer;">Mode: vs AI</button>
+    <button onclick="resetGame()" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:4px 8px; border-radius:4px; font-size:12px; cursor:pointer;">Restart</button>
+  </div>
+
+  <div id="board-wrapper">
+    <div id="slots-grid"></div>
+    <div id="overlay">
+      <h2 id="winner-title" style="color:#fff; font-size:22px; margin-bottom:8px;">Red Wins!</h2>
+      <button class="btn" onclick="resetGame()">Play Rematch</button>
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 6, COLS = 7;
+    const gridEl = document.getElementById('slots-grid');
+    const turnEl = document.getElementById('turn-indicator');
+    const modeBtn = document.getElementById('mode-btn');
+    const overlay = document.getElementById('overlay');
+    const winnerTitle = document.getElementById('winner-title');
+
+    let board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+    let turn = 1; // 1 = Red, 2 = Yellow
+    let isAi = true;
+    let winner = null;
+
+    function toggleMode() {
+      isAi = !isAi;
+      modeBtn.textContent = isAi ? 'Mode: vs AI' : 'Mode: 2P Local';
+      resetGame();
+    }
+
+    function createBoard() {
+      gridEl.innerHTML = '';
+      for (let c = 0; c < COLS; c++) {
+        const colEl = document.createElement('div');
+        colEl.className = 'col-drop';
+        colEl.addEventListener('click', () => drop(c));
+        for (let r = 0; r < ROWS; r++) {
+          const slot = document.createElement('div');
+          slot.className = 'slot';
+          slot.id = `s-${r}-${c}`;
+          colEl.appendChild(slot);
+        }
+        gridEl.appendChild(colEl);
+      }
+    }
+
+    function drop(c) {
+      if (winner) return;
+
+      // Find lowest empty slot in column
+      let targetR = -1;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r][c] === 0) {
+          targetR = r;
+          break;
+        }
+      }
+
+      if (targetR === -1) return; // Column full
+
+      board[targetR][c] = turn;
+      render();
+
+      const winLine = checkWin(turn);
+      if (winLine) {
+        winner = turn;
+        winnerTitle.textContent = (winner === 1 ? 'Red' : 'Yellow') + ' Connects 4!';
+        overlay.classList.add('active');
+        highlightWin(winLine);
+        return;
+      }
+
+      // Check draw
+      if (board.every(r => r.every(v => v !== 0))) {
+        winnerTitle.textContent = 'Match Draw!';
+        overlay.classList.add('active');
+        return;
+      }
+
+      turn = turn === 1 ? 2 : 1;
+      updateTurnText();
+
+      if (isAi && turn === 2 && !winner) {
+        setTimeout(aiMove, 300);
+      }
+    }
+
+    function aiMove() {
+      if (winner) return;
+      // 1. Can AI win on next move?
+      for (let c = 0; c < COLS; c++) {
+        const r = getLowestRow(c);
+        if (r !== -1) {
+          board[r][c] = 2;
+          if (checkWin(2)) { board[r][c] = 0; drop(c); return; }
+          board[r][c] = 0;
+        }
+      }
+      // 2. Can player win on next move? Block them!
+      for (let c = 0; c < COLS; c++) {
+        const r = getLowestRow(c);
+        if (r !== -1) {
+          board[r][c] = 1;
+          if (checkWin(1)) { board[r][c] = 0; drop(c); return; }
+          board[r][c] = 0;
+        }
+      }
+      // 3. Fallback: prefer center columns
+      const prefCols = [3, 2, 4, 1, 5, 0, 6];
+      for (let c of prefCols) {
+        if (getLowestRow(c) !== -1) {
+          drop(c);
+          return;
+        }
+      }
+    }
+
+    function getLowestRow(c) {
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r][c] === 0) return r;
+      }
+      return -1;
+    }
+
+    function checkWin(player) {
+      // Horizontal
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS - 3; c++) {
+          if (board[r][c] === player && board[r][c+1] === player && board[r][c+2] === player && board[r][c+3] === player) {
+            return [[r,c], [r,c+1], [r,c+2], [r,c+3]];
+          }
+        }
+      }
+      // Vertical
+      for (let r = 0; r < ROWS - 3; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (board[r][c] === player && board[r+1][c] === player && board[r+2][c] === player && board[r+3][c] === player) {
+            return [[r,c], [r+1,c], [r+2,c], [r+3,c]];
+          }
+        }
+      }
+      // Diagonal Down-Right
+      for (let r = 0; r < ROWS - 3; r++) {
+        for (let c = 0; c < COLS - 3; c++) {
+          if (board[r][c] === player && board[r+1][c+1] === player && board[r+2][c+2] === player && board[r+3][c+3] === player) {
+            return [[r,c], [r+1,c+1], [r+2,c+2], [r+3,c+3]];
+          }
+        }
+      }
+      // Diagonal Up-Right
+      for (let r = 3; r < ROWS; r++) {
+        for (let c = 0; c < COLS - 3; c++) {
+          if (board[r][c] === player && board[r-1][c+1] === player && board[r-2][c+2] === player && board[r-3][c+3] === player) {
+            return [[r,c], [r-1,c+1], [r-2,c+2], [r-3,c+3]];
+          }
+        }
+      }
+      return null;
+    }
+
+    function highlightWin(coords) {
+      coords.forEach(([r, c]) => {
+        const slot = document.getElementById(`s-${r}-${c}`);
+        if (slot) slot.classList.add('win');
+      });
+    }
+
+    function updateTurnText() {
+      turnEl.textContent = turn === 1 ? "Red's Turn" : (isAi ? "AI Thinking..." : "Yellow's Turn");
+      turnEl.style.color = turn === 1 ? '#ef4444' : '#eab308';
+    }
+
+    function render() {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const slot = document.getElementById(`s-${r}-${c}`);
+          if (slot) {
+            slot.className = 'slot ' + (board[r][c] === 1 ? 'p1' : board[r][c] === 2 ? 'p2' : '');
+          }
+        }
+      }
+    }
+
+    function resetGame() {
+      board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+      turn = 1;
+      winner = null;
+      overlay.classList.remove('active');
+      updateTurnText();
+      render();
+    }
+
+    createBoard();
+    resetGame();
+  </script>
+</body>
+</html>

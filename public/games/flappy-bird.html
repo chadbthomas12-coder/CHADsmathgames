@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Astro Flap</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0a091e;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      padding: 10px;
+    }
+    #hud {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #15112e;
+      border: 1px solid #2e2652;
+      border-radius: 8px 8px 0 0;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+    .score-badge { color: #f59e0b; font-weight: bold; }
+    .best-badge { color: #38bdf8; font-weight: bold; }
+    #canvas-container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      aspect-ratio: 5/4;
+      background: #070514;
+      border: 1px solid #2e2652;
+      border-top: none;
+      cursor: pointer;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(7, 5, 20, 0.85);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+    #overlay.active { display: flex; }
+    h2 { font-size: 24px; color: #ef4444; margin-bottom: 8px; }
+    p { font-size: 14px; color: #94a3b8; margin-bottom: 16px; }
+    .btn {
+      background: #f59e0b;
+      color: #070514;
+      font-weight: bold;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn:hover { background: #d97706; }
+    #tap-btn {
+      display: none;
+      width: 100%;
+      max-width: 500px;
+      height: 48px;
+      background: #f59e0b;
+      color: #070514;
+      font-weight: bold;
+      border: none;
+      border-radius: 0 0 8px 8px;
+    }
+    @media (max-width: 600px) { #tap-btn { display: block; } }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div>Score: <span id="score" class="score-badge">0</span></div>
+    <div>Best: <span id="best" class="best-badge">0</span></div>
+    <div>Click / Space to Flap</div>
+  </div>
+
+  <div id="canvas-container" onclick="jump()">
+    <canvas id="game" width="500" height="400"></canvas>
+    <div id="overlay">
+      <h2>Orbit Terminated</h2>
+      <p id="modal-desc">Score: 0</p>
+      <button class="btn" onclick="event.stopPropagation(); resetGame();">Play Again (R)</button>
+    </div>
+  </div>
+
+  <button id="tap-btn" onclick="jump()">TAP TO THRUST</button>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const overlay = document.getElementById('overlay');
+    const modalDesc = document.getElementById('modal-desc');
+
+    let astro = { x: 80, y: 200, vy: 0, gravity: 0.38, jump: -6.5, r: 14 };
+    let gates = [];
+    let score = 0;
+    let best = parseInt(localStorage.getItem('flappy_hi') || '0', 10);
+    bestEl.textContent = best;
+    let started = false;
+    let isGameOver = false;
+
+    // Web Audio
+    let audioCtx = null;
+    function snd(f1, f2, dur) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.frequency.setValueAtTime(f1, audioCtx.currentTime);
+        if (f2) osc.frequency.exponentialRampToValueAtTime(f2, audioCtx.currentTime + dur);
+        g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        g.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+      } catch(e){}
+    }
+
+    function addGate(x) {
+      const top = Math.floor(Math.random() * 190) + 40;
+      const bot = 400 - top - 130;
+      gates.push({ x, top, bot, passed: false });
+    }
+
+    function resetGame() {
+      astro.y = 200;
+      astro.vy = 0;
+      gates = [];
+      score = 0;
+      scoreEl.textContent = '0';
+      started = false;
+      isGameOver = false;
+      overlay.classList.remove('active');
+      addGate(400);
+      addGate(620);
+      addGate(840);
+    }
+
+    function jump() {
+      if (isGameOver) return;
+      started = true;
+      astro.vy = astro.jump;
+      snd(250, 600, 0.12);
+    }
+
+    window.addEventListener('keydown', e => {
+      if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) {
+        e.preventDefault();
+        if (isGameOver) resetGame();
+        else jump();
+      } else if (e.code === 'KeyR' && isGameOver) {
+        resetGame();
+      }
+    });
+
+    function loop() {
+      if (started && !isGameOver) {
+        astro.vy += astro.gravity;
+        astro.y += astro.vy;
+
+        if (astro.y + astro.r >= 400 || astro.y - astro.r <= 0) {
+          isGameOver = true;
+          snd(200, 50, 0.3);
+          modalDesc.textContent = 'Score: ' + score;
+          overlay.classList.add('active');
+        }
+
+        for (let i = gates.length - 1; i >= 0; i--) {
+          const g = gates[i];
+          g.x -= 2.4;
+
+          if (!g.passed && g.x + 50 < astro.x) {
+            g.passed = true;
+            score++;
+            scoreEl.textContent = score;
+            snd(520, 800, 0.15);
+            if (score > best) {
+              best = score;
+              bestEl.textContent = best;
+              localStorage.setItem('flappy_hi', String(best));
+            }
+          }
+
+          // Collision
+          const inX = astro.x + astro.r > g.x && astro.x - astro.r < g.x + 50;
+          const hitTop = astro.y - astro.r < g.top;
+          const hitBot = astro.y + astro.r > 400 - g.bot;
+
+          if (inX && (hitTop || hitBot)) {
+            isGameOver = true;
+            snd(150, 50, 0.3);
+            modalDesc.textContent = 'Score: ' + score;
+            overlay.classList.add('active');
+          }
+
+          if (g.x < -60) {
+            gates.splice(i, 1);
+            const maxX = Math.max(...gates.map(gate => gate.x), 350);
+            addGate(maxX + 220);
+          }
+        }
+      }
+
+      // Draw
+      ctx.fillStyle = '#070514';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Gates
+      gates.forEach(g => {
+        ctx.fillStyle = '#ea580c';
+        ctx.fillRect(g.x, 0, 50, g.top);
+        ctx.fillRect(g.x, 400 - g.bot, 50, g.bot);
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(g.x - 2, g.top - 10, 54, 10);
+        ctx.fillRect(g.x - 2, 400 - g.bot, 54, 10);
+      });
+
+      // Astro
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(astro.x, astro.y, astro.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Visor
+      ctx.fillStyle = '#06b6d4';
+      ctx.fillRect(astro.x + 2, astro.y - 6, 8, 12);
+
+      requestAnimationFrame(loop);
+    }
+
+    resetGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
