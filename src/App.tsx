@@ -59,6 +59,9 @@ export default function App() {
     }
   });
 
+  const [iframeLoading, setIframeLoading] = useState(true);
+  const [iframeError, setIframeError] = useState(false);
+
   // Panic / Stealth Mode state
   const [isStealthMode, setIsStealthMode] = useState(false);
   const [stealthNotes, setStealthNotes] = useState(
@@ -98,6 +101,11 @@ export default function App() {
     const initialGames: GameItem[] = [...(gamesData as GameItem[]), ...customGames];
     setGames(initialGames);
   }, []);
+
+  useEffect(() => {
+    setIframeLoading(true);
+    setIframeError(false);
+  }, [selectedGameId]);
 
   // Save favorites
   const toggleFavorite = (id: string, e?: React.MouseEvent) => {
@@ -419,16 +427,45 @@ export default function App() {
             {/* Iframe Viewport Container */}
             <div
               ref={iframeContainerRef}
-              className="relative w-full aspect-[16/10] max-h-[640px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col"
+              className="relative w-full aspect-[16/10] max-h-[640px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col items-center justify-center"
             >
-              <iframe
-                ref={iframeRef}
-                src={activeGame.iframeUrl}
-                title={activeGame.title}
-                className="w-full h-full border-0 block"
-                allow="autoplay; fullscreen; keyboard"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-              />
+              {iframeLoading && (
+                <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center gap-3 z-10">
+                  <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-mono text-slate-400">Loading {activeGame.title}...</span>
+                </div>
+              )}
+
+              {iframeError ? (
+                <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center z-20">
+                  <ShieldAlert className="w-10 h-10 text-rose-500 mb-2" />
+                  <h3 className="text-lg font-bold text-white mb-1">Could Not Load Game</h3>
+                  <p className="text-xs text-slate-400 max-w-sm mb-4">
+                    The game file at <code className="text-cyan-300 font-mono">{activeGame.iframeUrl}</code> could not be loaded.
+                  </p>
+                  <button
+                    onClick={handleReloadIframe}
+                    className="px-4 py-2 bg-cyan-400 text-slate-950 text-xs font-bold rounded-lg hover:bg-cyan-300 transition-colors"
+                  >
+                    Retry Loading
+                  </button>
+                </div>
+              ) : (
+                <iframe
+                  ref={iframeRef}
+                  key={activeGame.id}
+                  src={activeGame.iframeUrl}
+                  title={activeGame.title}
+                  className="w-full h-full border-0 block"
+                  allow="autoplay; fullscreen; keyboard"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+                  onLoad={() => setIframeLoading(false)}
+                  onError={() => {
+                    setIframeLoading(false);
+                    setIframeError(true);
+                  }}
+                />
+              )}
             </div>
 
             {/* Game Info Section */}
